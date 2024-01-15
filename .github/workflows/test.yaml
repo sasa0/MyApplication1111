@@ -2,7 +2,7 @@ name: Notify Stale PR
 
 on:
   schedule:
-    - cron: '50 16 * * *'  # Runs every day at 4:42 pm UTC
+    - cron: '55 16 * * *'  # Runs every day at 4:55 pm UTC
 
 jobs:
   notify:
