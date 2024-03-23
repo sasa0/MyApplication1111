@@ -36,7 +36,7 @@ jobs:
           if [[ $TIME_DIFF -gt 120 ]]; then
             echo "PR is idle. Notifying assignee."
             COMMENT="LOOK AT THIS"
-            curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -d "{\"body\":\"$COMMENT\"}" ${{ PR_URL }}/comments
+            curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -d "{\"body\":\"$COMMENT\"}" ${{ github.event.pull_request.comments_url }}
           else
             echo "PR has recent reviews."
           fi
