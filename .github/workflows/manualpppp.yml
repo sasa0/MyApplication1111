@@ -20,28 +20,23 @@ jobs:
 
       - name: Check for idle PR
         run: |
-          # Your logic to check for idle PRs goes here
-          # For example, you can use GitHub API to fetch reviews and timestamps
-          # If no new reviews within 2 minutes, post a comment with "LOOK AT THIS"
-          echo "Checking for idle PRs"
+          # Fetch the PR details
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          PR_URL=${{ github.event.pull_request.html_url }}
 
-          # Replace the following line with your actual logic
-          # Example: If no new reviews, post a comment
-          # echo "::set-output name=idle::true"
-          # Otherwise: echo "::set-output name=idle::false"
-          # Then use ${{ steps.notify.outputs.idle }} in subsequent steps
+          # Get the timestamp of the last review
+          LAST_REVIEW=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${{ github.event.pull_request.url }}/reviews | jq -r '.[0].submitted_at')
 
-      - name: Notify assignee
-        if: steps.notify.outputs.idle == 'true'
-        run: |
-          # Your logic to notify the assignee
-          # For example, use GitHub API to post a comment
-          echo "PR is idle. Notifying assignee."
+          # Calculate the time difference
+          NOW=$(date +%s)
+          LAST_REVIEW_TS=$(date -d "$LAST_REVIEW" +%s)
+          TIME_DIFF=$((NOW - LAST_REVIEW_TS))
 
-          # Replace the following line with actual comment posting
-          # Example: Post a comment saying "LOOK AT THIS"
-          # echo "LOOK AT THIS" > idle_comment.txt
-          # gh pr comment ${{ github.event.pull_request.number }} --body "$(cat idle_comment.txt)"
-
-      - name: Complete workflow
-        run: echo "Workflow completed"
+          # If no new reviews within 2 minutes, post a comment
+          if [[ $TIME_DIFF -gt 120 ]]; then
+            echo "PR is idle. Notifying assignee."
+            COMMENT="LOOK AT THIS"
+            curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -d "{\"body\":\"$COMMENT\"}" ${{ PR_URL }}/comments
+          else
+            echo "PR has recent reviews."
+          fi
