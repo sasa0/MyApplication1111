@@ -20,6 +20,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
       - name: Check for idle PR
         run: |
           # Fetch the PR details
@@ -37,7 +42,7 @@ jobs:
           # If no new reviews within 2 minutes, post a comment
           if [[ $TIME_DIFF -gt 120 ]]; then
             echo "PR is idle. Notifying assignee."
-            COMMENT="LOOK AT THIS"
+            COMMENT="LOOK AT THIS 1"
             curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -d "{\"body\":\"$COMMENT\"}" ${{ github.event.pull_request.comments_url }}
           else
             echo "PR has recent reviews."
