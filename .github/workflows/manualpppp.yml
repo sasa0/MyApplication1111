@@ -1,43 +1,32 @@
-name: Notify on Missing Reviews
+name: Notify on idle PR
 
 on:
-  pull_request_review:
-    types: [submitted, edited, dismissed]
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - review_requested
+      - review_request_removed
+      - review
+      - closed
 
 jobs:
-  notify_missing_reviews:
+  notify:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout Repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Check for Missing Reviews
-        id: check_reviews
-        run: |
-          reviews=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews")
-          reviews_count=$(echo "$reviews" | jq 'length')
-          if [ $reviews_count -eq 0 ]; then
-            echo "::set-output name=no_reviews::true"
-          fi
-          last_review=$(echo "$reviews" | jq -r '.[] | .submitted_at' | sort | tail -n1)
-          current_time=$(date +%s)
-          last_review_time=$(date -d "$last_review" +%s)
-          time_diff=$((current_time - last_review_time))
-          if [ $time_diff -gt 120 ]; then
-            echo "::set-output name=old_reviews::true"
-          fi
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
 
-      - name: Notify Assignee
-        if: steps.check_reviews.outputs.no_reviews == 'true' || steps.check_reviews.outputs.old_reviews == 'true'
-        run: |
-          assignee=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" | jq -r '.assignee.login')
-          if [ -n "$assignee" ]; then
-            comment_body="LOOK AT THIS"
-            curl -X POST -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d "{\"body\": \"$comment_body\"}" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments"
-          fi
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check for idle PR
+        run: python check_idle_pr.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
