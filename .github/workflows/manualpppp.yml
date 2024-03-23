@@ -18,12 +18,30 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.x
-
       - name: Check for idle PR
-        run: python check_idle_pr.py
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Your logic to check for idle PRs goes here
+          # For example, you can use GitHub API to fetch reviews and timestamps
+          # If no new reviews within 2 minutes, post a comment with "LOOK AT THIS"
+          echo "Checking for idle PRs"
+
+          # Replace the following line with your actual logic
+          # Example: If no new reviews, post a comment
+          # echo "::set-output name=idle::true"
+          # Otherwise: echo "::set-output name=idle::false"
+          # Then use ${{ steps.notify.outputs.idle }} in subsequent steps
+
+      - name: Notify assignee
+        if: steps.notify.outputs.idle == 'true'
+        run: |
+          # Your logic to notify the assignee
+          # For example, use GitHub API to post a comment
+          echo "PR is idle. Notifying assignee."
+
+          # Replace the following line with actual comment posting
+          # Example: Post a comment saying "LOOK AT THIS"
+          # echo "LOOK AT THIS" > idle_comment.txt
+          # gh pr comment ${{ github.event.pull_request.number }} --body "$(cat idle_comment.txt)"
+
+      - name: Complete workflow
+        run: echo "Workflow completed"
