@@ -1,0 +1,49 @@
+name: Notify on idle PR
+
+on:
+  schedule:
+    - cron: "*/2 * * * *"
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - review_requested
+      - review_request_removed
+      - review
+      - closed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.x
+
+      - name: Check for idle PR
+        run: |
+          # Fetch the PR details
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          PR_URL=${{ github.event.pull_request.html_url }}
+
+          # Get the timestamp of the last review
+          LAST_REVIEW=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${{ github.event.pull_request.url }}/reviews | jq -r '.[0].submitted_at')
+
+          # Calculate the time difference
+          NOW=$(date +%s)
+          LAST_REVIEW_TS=$(date -d "$LAST_REVIEW" +%s)
+          TIME_DIFF=$((NOW - LAST_REVIEW_TS))
+
+          # If no new reviews within 2 minutes, post a comment
+          if [[ $TIME_DIFF -gt 120 ]]; then
+            echo "PR is idle. Notifying assignee."
+            COMMENT="LOOK AT THIS 1"
+            curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -d "{\"body\":\"$COMMENT\"}" ${{ github.event.pull_request.comments_url }}
+          else
+            echo "PR has recent reviews."
+          fi
